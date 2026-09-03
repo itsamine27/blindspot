@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Case File — Detective Party Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15130f;
+    --ink-2:#1e1a14;
+    --ink-3:#252017;
+    --manila:#c9a66b;
+    --manila-2:#e0c187;
+    --manila-dark:#a9855099;
+    --paper:#ede6d6;
+    --amber:#e8a33d;
+    --amber-dim:#8a621f;
+    --stamp:#a6291f;
+    --evidence:#3f6e5b;
+    --muted:#a99c86;
+    --line:rgba(237,230,214,0.14);
+    --line-strong:rgba(237,230,214,0.28);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--ink); color:var(--paper); min-height:100%;}
+  body{
+    font-family:'Courier Prime', monospace;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, #2a2318 0%, transparent 60%),
+      var(--ink);
+    min-height:100vh;
+    position:relative;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0; pointer-events:none; z-index:9999;
+    opacity:0.05;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  h1,h2,h3,.display{font-family:'Oswald', sans-serif; margin:0; letter-spacing:0.01em;}
+  button{font-family:'Oswald', sans-serif; cursor:pointer;}
+  input{font-family:'Courier Prime', monospace;}
+  ::selection{background:var(--amber); color:var(--ink);}
+
+  #app{max-width:520px; margin:0 auto; min-height:100vh; padding:20px 18px 48px; position:relative;}
+  @media (min-width:640px){ #app{max-width:600px; padding:32px 24px 56px;} }
+
+  .reduce-motion, *{scroll-behavior:auto;}
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;} }
+
+  /* ---------- header / room bar ---------- */
+  .roombar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; margin-bottom:22px;
+    background:var(--ink-2); border:1px solid var(--line); border-radius:2px;
+  }
+  .roombar .code{ font-family:'Oswald',sans-serif; letter-spacing:0.12em; color:var(--amber); font-size:15px; font-weight:600;}
+  .roombar .role{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;}
+  .roombar .role b{color:var(--paper); text-transform:none; font-family:'Oswald',sans-serif; font-weight:500;}
+
+  .case-clock{
+    font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; letter-spacing:0.08em;
+    color:var(--amber); background:#0e0c08; border:1px solid var(--amber-dim); border-radius:2px;
+    padding:4px 10px; text-shadow:0 0 8px rgba(232,163,61,0.55);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- wordmark ---------- */
+  .wordmark{ text-align:center; margin:28px 0 6px; }
+  .wordmark h1{
+    font-size:38px; font-weight:700; color:var(--paper);
+    text-shadow:0 0 30px rgba(232,163,61,0.15);
+  }
+  .wordmark .sub{ color:var(--muted); font-size:13px; margin-top:8px; letter-spacing:0.02em;}
+  .lamp-glow{
+    width:220px; height:120px; margin:0 auto 4px;
+    background:radial-gradient(ellipse at center, rgba(232,163,61,0.35) 0%, transparent 70%);
+    filter:blur(2px);
+  }
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:block; width:100%; text-align:center;
+    padding:15px 18px; font-size:15px; font-weight:600; letter-spacing:0.02em;
+    border-radius:2px; border:1px solid transparent;
+    transition:transform 0.08s ease, box-shadow 0.08s ease;
+    text-decoration:none; box-sizing:border-box;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn-primary{ background:var(--amber); color:#1a1300; border-color:var(--amber);}
+  .btn-primary:hover{ background:#f0ac48; }
+  .btn-primary:disabled{ background:#5a4d33; color:#8a7d64; cursor:not-allowed; }
+  .btn-outline{ background:transparent; color:var(--paper); border-color:var(--line-strong);}
+  .btn-outline:hover{ border-color:var(--amber); color:var(--amber); }
+  .btn-danger{ background:transparent; color:var(--stamp); border:1px solid var(--stamp); }
+  .btn-sm{ padding:9px 14px; font-size:12.5px; width:auto; display:inline-block; }
+  .btn-row{ display:flex; gap:10px; }
+  .btn-row .btn{ flex:1; }
+
+  /* ---------- folder / file card, the signature element ---------- */
+  .folder{
+    position:relative;
+    background:linear-gradient(180deg, var(--manila-2) 0%, var(--manila) 100%);
+    color:#231a0c;
+    border-radius:1px 10px 3px 3px;
+    padding:22px 18px 18px;
+    margin:0 0 18px;
+    box-shadow:0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.08);
+    transform:rotate(-0.4deg);
+  }
+  .folder + .folder{ transform:rotate(0.35deg); }
+  .folder .tab{
+    position:absolute; top:-14px; left:18px;
+    background:var(--manila-dark); background-color:#b8956055;
+    background:#c3a06e;
+    border:1px solid rgba(0,0,0,0.15); border-bottom:none;
+    padding:4px 12px 8px; border-radius:4px 4px 0 0;
+    font-family:'Oswald',sans-serif; font-size:11px; font-weight:600;
+    letter-spacing:0.08em; color:#3b2c14; transform:rotate(-1.5deg);
+  }
+  .folder h2, .folder h3{ color:#231a0c; }
+  .folder .muted-dark{ color:#6b5836; font-size:12.5px; }
+  .folder-dark{
+    background:linear-gradient(180deg, var(--ink-3) 0%, var(--ink-2) 100%);
+    color:var(--paper);
+    box-shadow:0 10px 24px rgba(0,0,0,0.45), inset 0 0 0 1px var(--line);
+  }
+  .folder-dark .tab{ background:#2b2519; color:var(--amber); border-color:var(--line); }
+  .folder-dark h2, .folder-dark h3{ color:var(--paper); }
+
+  .stamp{
+    display:inline-block; font-family:'Oswald',sans-serif; font-weight:700;
+    font-size:11px; letter-spacing:0.14em; padding:3px 9px;
+    border:2px solid var(--stamp); color:var(--stamp);
+    border-radius:2px; transform:rotate(-3deg);
+    text-transform:uppercase;
+  }
+  .stamp.ok{ border-color:var(--evidence); color:var(--evidence); }
+
+  /* ---------- home ---------- */
+  .mode-card{
+    padding:18px; border:1px solid var(--line); border-radius:2px;
+    margin-bottom:14px; background:var(--ink-2);
+  }
+  .field label{ display:block; font-size:11px; color:var(--muted); letter-spacing:0.06em; margin-bottom:6px;}
+  .field input{
+    width:100%; padding:12px 12px; background:var(--ink); border:1px solid var(--line-strong);
+    color:var(--paper); border-radius:2px; font-size:15px; letter-spacing:0.03em;
+  }
+  .field input:focus{ outline:none; border-color:var(--amber); }
+  .field{ margin-bottom:12px; }
+  .code-input{ text-transform:uppercase; letter-spacing:0.3em !important; text-align:center; font-family:'Oswald',sans-serif; }
+  .hint{ font-size:11.5px; color:var(--muted); margin-top:10px; line-height:1.5; }
+  .divider{ text-align:center; color:var(--muted); font-size:11px; letter-spacing:0.1em; margin:18px 0; position:relative; }
+
+  /* ---------- lobby ---------- */
+  .room-tag{
+    display:flex; align-items:center; gap:14px; padding:16px; margin-bottom:18px;
+    background:var(--manila-2); color:#231a0c; border-radius:3px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.3);
+  }
+  .room-tag .code-big{ font-family:'Oswald',sans-serif; font-size:26px; font-weight:700; letter-spacing:0.12em; }
+  .room-tag .lab{ font-size:10.5px; letter-spacing:0.1em; color:#6b5836; }
+  .roster{ list-style:none; margin:0; padding:0; }
+  .roster li{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:11px 4px; border-bottom:1px dashed var(--line);
+    font-size:14px;
+  }
+  .roster li:last-child{ border-bottom:none; }
+  .roster .rname{ color:var(--paper); }
+  .roster .rrole{ font-size:11px; color:var(--amber); letter-spacing:0.05em; }
+
+  .case-tile{
+    display:flex; gap:14px; padding:14px; margin-bottom:12px;
+    background:var(--ink-2); border:1px solid var(--line); border-radius:2px;
+    cursor:pointer; transition:border-color 0.12s ease, background 0.12s ease;
+    text-align:left; width:100%; color:var(--paper);
+  }
+  .case-tile:hover{ border-color:var(--amber); }
+  .case-tile.selected{ border-color:var(--amber); background:#2a2114; }
+  .case-tile.locked{ opacity:0.45; cursor:not-allowed; }
+  .case-thumb{
+    width:56px; height:56px; flex:0 0 56px; border-radius:2px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald',sans-serif; font-size:20px; font-weight:700; color:#1a1300;
+  }
+  .case-tile h3{ font-size:15px; margin-bottom:3px; }
+  .case-tile p{ font-size:12px; color:var(--muted); margin:0; line-height:1.4;}
+
+  /* ---------- cinematic intro ---------- */
+  .cinema{
+    position:fixed; inset:0; background:#000; z-index:200;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    text-align:center; padding:24px;
+  }
+  .cinema .grain{
+    position:absolute; inset:0; opacity:0.12; mix-blend-mode:screen;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    animation:flicker 0.4s steps(2) infinite;
+  }
+  @keyframes flicker{ 0%{opacity:0.08;} 50%{opacity:0.16;} 100%{opacity:0.1;} }
+  .cinema .count{ font-family:'Oswald',sans-serif; font-size:64px; color:#555; font-weight:700; }
+  .cinema .title{
+    font-family:'Oswald',sans-serif; font-size:34px; font-weight:700; color:var(--paper);
+    opacity:0; transform:scale(1.4) rotate(-2deg);
+    animation:stamp-in 0.5s cubic-bezier(.2,.9,.3,1) forwards;
+  }
+  @keyframes stamp-in{ 0%{opacity:0; transform:scale(1.6) rotate(-4deg);} 60%{opacity:1; transform:scale(0.96) rotate(1deg);} 100%{opacity:1; transform:scale(1) rotate(0);} }
+  .cinema .tagline{ color:var(--muted); font-size:14px; margin-top:12px; max-width:340px; }
+  .cinema video{ max-width:100%; max-height:70vh; border-radius:2px; }
+  .cinema .skip{
+    position:absolute; bottom:28px; right:24px; color:var(--muted); font-size:12px;
+    border:1px solid var(--line-strong); padding:8px 14px; border-radius:2px; background:transparent;
+  }
+  .cinema .go{ margin-top:26px; }
+
+  /* ---------- role dashboard ---------- */
+  .role-banner{
+    padding:14px 16px; margin-bottom:18px; border-radius:2px;
+    background:linear-gradient(90deg, #2a2114, #1e1a14);
+    border-left:3px solid var(--amber);
+  }
+  .role-banner .k{ font-size:10.5px; letter-spacing:0.12em; color:var(--muted); }
+  .role-banner h2{ font-size:19px; color:var(--paper); margin-top:3px; }
+  .role-banner p{ font-size:12.5px; color:var(--muted); margin-top:6px; line-height:1.5;}
+
+  /* ---------- role switcher (players holding multiple roles) ---------- */
+  .role-tabs{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .rtab{
+    padding:9px 15px; font-size:12.5px; font-weight:500; border:1px solid var(--line-strong);
+    border-radius:2px; background:var(--ink-2); color:var(--muted); transition:border-color 0.12s ease, color 0.12s ease;
+  }
+  .rtab.active{ border-color:var(--amber); color:var(--amber); background:#2a2114; }
+  .rtab .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--muted); margin-right:6px; vertical-align:middle;}
+  .rtab.active .dot{ background:var(--amber); }
+  .multi-note{ font-size:11.5px; color:var(--muted); margin:-10px 0 16px; line-height:1.5; }
+
+  .exhibit{
+    padding:16px; margin-bottom:12px;
+    background:var(--paper); color:#231a0c; border-radius:2px;
+    box-shadow:0 6px 14px rgba(0,0,0,0.28);
+    border-top:3px solid var(--amber-dim);
+  }
+  .exhibit .ex-label{
+    font-family:'Oswald',sans-serif; font-size:10.5px; font-weight:600; letter-spacing:0.1em;
+    color:var(--amber-dim); margin-bottom:6px; display:block;
+  }
+  .exhibit h3{ font-size:15px; color:#231a0c; margin-bottom:6px; }
+  .exhibit .desc{ font-size:13px; line-height:1.55; color:#3a2f1c; }
+  .exhibit .desc.log{ font-family:'Courier Prime', monospace; white-space:pre-wrap; background:#e2d8bf; padding:10px; border-radius:2px; font-size:12.5px; line-height:1.7; margin-top:6px;}
+
+  /* ---------- case file photo (always landscape) ---------- */
+  .case-photo-frame{
+    width:100%; aspect-ratio:16/9; border-radius:2px; overflow:hidden; margin-bottom:14px;
+    background:#0c0a07; border:1px solid var(--line-strong); position:relative; cursor:zoom-in;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .case-photo-frame img{ width:100%; height:100%; object-fit:contain; background:#0c0a07; display:block; }
+  .case-photo-frame .zoom-hint{
+    position:absolute; bottom:9px; right:11px; font-family:'Oswald',sans-serif; font-size:10.5px;
+    color:var(--paper); background:rgba(0,0,0,0.6); padding:4px 9px; border-radius:2px; letter-spacing:0.04em;
+  }
+  .case-photo-frame.placeholder{ cursor:default; }
+  .case-photo-frame .ph-inner{ text-align:center; color:var(--muted); padding:20px; }
+  .case-photo-frame .ph-inner svg{ opacity:0.7; }
+  .case-photo-frame .ph-inner p{ margin:8px 0 0; font-size:12.5px; }
+  .case-photo-frame .ph-inner .ph-sub{ font-size:10.5px; opacity:0.7; margin-top:3px; }
+
+  .lightbox-back{
+    position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:260;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .lightbox-wrap{ width:100%; max-width:960px; }
+  .lightbox-close{
+    display:block; margin:0 0 10px auto; color:var(--paper); font-size:12px;
+    border:1px solid var(--line-strong); padding:8px 14px; border-radius:2px; background:transparent;
+  }
+  .lightbox-frame{
+    width:100%; aspect-ratio:16/9; background:#000; display:flex; align-items:center; justify-content:center;
+    border-radius:2px; overflow:hidden;
+  }
+  .lightbox-frame img{ max-width:100%; max-height:100%; object-fit:contain; }
+
+  /* ---------- role briefing popup ---------- */
+  .briefing-back{
+    position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:250;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .briefing-card{
+    position:relative; background:linear-gradient(180deg, var(--manila-2) 0%, var(--manila) 100%);
+    color:#231a0c; border-radius:1px 14px 4px 4px; padding:28px 22px 22px; max-width:400px; width:100%;
+    box-shadow:0 24px 60px rgba(0,0,0,0.55); transform-origin:center;
+    animation:stamp-in 0.45s cubic-bezier(.2,.9,.3,1) forwards;
+  }
+  .briefing-card .tab{
+    position:absolute; top:-14px; left:20px; background:#c3a06e; border:1px solid rgba(0,0,0,0.15); border-bottom:none;
+    padding:4px 12px 8px; border-radius:4px 4px 0 0; font-family:'Oswald',sans-serif; font-size:11px; font-weight:600;
+    letter-spacing:0.08em; color:#3b2c14; transform:rotate(-1.5deg);
+  }
+  .briefing-card .corner-stamp{ position:absolute; top:20px; right:20px; }
+  .briefing-card h2{ font-size:20px; color:#231a0c; margin-top:6px; padding-right:74px; line-height:1.25; }
+  .briefing-card .desc{ font-size:13px; line-height:1.6; margin-top:10px; color:#3a2f1c; }
+  .briefing-card .todo{ margin-top:14px; padding-top:14px; border-top:1px dashed rgba(0,0,0,0.18); }
+  .briefing-card .todo p{ font-size:12.5px; line-height:1.6; color:#3a2f1c; margin:0; }
+  .briefing-card .todo b{ color:#1c1509; }
+
+  /* ---------- suspects (host) ---------- */
+  .suspect-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; align-items:start; }
+  .suspect-card{
+    background:var(--ink-2); border:2px solid var(--line); border-radius:2px; overflow:hidden;
+    text-align:left; color:var(--paper); padding:0; cursor:pointer;
+    transition:border-color 0.12s ease, transform 0.08s ease;
+  }
+  .suspect-card:active{ transform:scale(0.98); }
+  .suspect-card.playing{ border-color:var(--amber); }
+  .suspect-card.chosen{ border-color:var(--stamp); box-shadow:0 0 0 2px var(--stamp) inset; }
+  .suspect-card:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+  .stop-audio-btn{
+    display:block; width:100%; margin-top:9px; padding:8px 10px; font-size:11.5px; font-weight:600;
+    letter-spacing:0.04em; background:transparent; color:var(--stamp); border:1px solid var(--stamp);
+    border-radius:2px; text-align:center;
+  }
+  .stop-audio-btn:active{ transform:scale(0.97); }
+  .mugshot{ width:100%; aspect-ratio:1/1; position:relative; overflow:hidden; }
+  .mugshot svg{ width:100%; height:100%; display:block; }
+  .mugshot .idnum{
+    position:absolute; bottom:5px; right:7px; font-family:'Oswald',sans-serif;
+    font-size:10px; color:rgba(255,255,255,0.55); letter-spacing:0.05em;
+  }
+  .sc-body{ padding:10px 11px 12px; }
+  .sc-body h4{ font-size:14px; margin-bottom:2px; }
+  .sc-body .srole{ font-size:11px; color:var(--muted); }
+  .sc-body .waveform{ display:flex; align-items:flex-end; gap:2px; height:20px; margin-top:8px; }
+  .sc-body .waveform span{ flex:1; background:var(--amber); border-radius:1px; animation:wave 0.9s ease-in-out infinite; }
+  @keyframes wave{ 0%,100%{ height:20%; } 50%{ height:100%; } }
+  .transcript{
+    margin-top:8px; padding:8px 9px; background:var(--ink); border-radius:2px;
+    font-size:12px; color:var(--muted); line-height:1.5; font-style:italic;
+    border-left:2px solid var(--amber-dim);
+    opacity:0; animation:fadein 0.4s ease forwards;
+  }
+  @keyframes fadein{ to{opacity:1;} }
+
+  .accuse-warning{
+    padding:12px 14px; background:#2a1512; border:1px solid var(--stamp); border-radius:2px;
+    color:#e7b8b2; font-size:12.5px; margin-bottom:14px; line-height:1.5;
+  }
+
+  /* ---------- waiting / resolved ---------- */
+  .waiting{ text-align:center; padding:60px 20px; }
+  .waiting .pulse{ width:10px; height:10px; border-radius:50%; background:var(--amber); margin:0 auto 18px; animation:pulse2 1.4s ease-in-out infinite; }
+  @keyframes pulse2{ 0%,100%{ transform:scale(1); opacity:1;} 50%{ transform:scale(1.7); opacity:0.4;} }
+  .waiting h2{ font-size:18px; margin-bottom:8px; }
+  .waiting p{ color:var(--muted); font-size:13px; }
+
+  .result-hero{ text-align:center; padding:30px 10px 10px; }
+  .result-hero .bigstamp{
+    display:inline-block; font-family:'Oswald',sans-serif; font-weight:700; font-size:30px;
+    padding:10px 20px; border:4px solid var(--evidence); color:var(--evidence);
+    transform:rotate(-4deg); letter-spacing:0.06em; margin-bottom:18px;
+  }
+  .result-hero .bigstamp.lose{ border-color:var(--stamp); color:var(--stamp); }
+  .result-hero .who{ font-size:14px; color:var(--muted); margin-bottom:4px; }
+  .result-hero .who b{ color:var(--paper); }
+
+  /* ---------- post-game actions: donate + review ---------- */
+  .postgame{ margin-top:24px; padding-top:20px; border-top:1px dashed var(--line); }
+  .postgame-label{ font-size:11px; color:var(--muted); letter-spacing:0.08em; text-align:center; margin-bottom:12px; text-transform:uppercase; }
+  .btn-icon{ display:inline-flex; vertical-align:-3px; margin-right:8px; }
+  .btn-donate{
+    background:linear-gradient(180deg, #f0ac48, var(--amber)); color:#1a1300; border-color:var(--amber);
+    box-shadow:0 8px 20px rgba(232,163,61,0.28); font-size:15.5px;
+  }
+  .btn-sub{ font-size:10.5px; color:var(--muted); text-align:center; margin-top:7px; line-height:1.4; }
+  .btn-stack{ margin-bottom:16px; }
+  .btn-stack:last-child{ margin-bottom:0; }
+
+  /* modal */
+  .modal-back{ position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:150; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .modal{ background:var(--ink-2); border:1px solid var(--line-strong); border-radius:2px; padding:22px; max-width:380px; width:100%; }
+  .modal h3{ font-size:17px; margin-bottom:10px; }
+  .modal p{ font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:18px;}
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--ink-3); border:1px solid var(--line-strong); padding:10px 16px;
+    border-radius:2px; font-size:12.5px; color:var(--paper); z-index:300;
+    animation:toastin 0.25s ease, toastout 0.3s ease 2.4s forwards;
+  }
+  @keyframes toastin{ from{opacity:0; transform:translate(-50%,8px);} }
+  @keyframes toastout{ to{opacity:0;} }
+
+  .footnote{ text-align:center; font-size:11px; color:var(--muted); margin-top:26px; line-height:1.6; }
+  .footnote a{ color:var(--amber); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const FEEDBACK_EMAIL = 'amine.abdennadhr@gmail.com'; 
+const DONATE_LINK = 'https://www.paypal.com/ncp/payment/M9FK3JFQU5U3W'; 
+const API_BASE = 'https://blindspot-d4ho.onrender.com';
+
+/* =========================================================================
+   CASE DATA — this is a template for your own case. Fill in every field
+   below with your real content. Fields you can leave blank if not ready:
+     - introVideoUrl        : real video URL -> plays instead of the simulated intro
+     - suspects[].imageUrl  : real photo URL -> replaces the silhouette avatar
+     - suspects[].audioUrl  : real audio URL -> plays instead of the waveform sim
+     - roleImages.*         : one landscape image per analyst role — this IS
+                               their whole case file. Leave blank to show a
+                               placeholder until you have the image ready.
+   Everything below still runs end-to-end with these left blank.
+========================================================================= */
+const CASES = [
+  {
+    id: 'case1',
+    title: 'The Vance Tower Murder',
+    tagline: 'A dead CEO, a locked penthouse, and four suspects with everything to hide.',
+    thumb: '01', 
+    thumbColor: '#1a232a',
+    victim: 'Arthur Vance, 45 — Founder & CEO of Vance Corp',
+    location: '12th Floor Executive Penthouse Suite, Vance Tower',
+    discovered: 'Nov 14, 2024 at 10:15 PM by Night Security',
+    briefing: "At 10:15 PM, tech CEO Arthur Vance was found dead in his top-floor penthouse suite. The crime scene shows a shattered crystal decanter, a missing safe keycard, and signs of a struggle. Initial evidence points heavily toward his co-founder Marcus Vance, who was seen storming out with blood on his sleeve. However, cross-referencing forensic timelines, keycard access logs, and financial flows reveals a much more deliberate setup. As Lead Investigator, questioning begins now.",
+    introVideoUrl: 'PixVerse_V6_Image_Text_540P_A_cinematic_atmosp.mp4',
+    murdererId: 'elena',
+    solutionNote: "Elena Rostova murdered Arthur to cover up her $650,000 offshore embezzlement after receiving his midnight police ultimatum. She sedated him via Sarah's tea, slipped up Service Stairwell B using keycard #003, strangled him with maintenance gloves at 9:35 PM, and framed Marcus using the decanter fight as cover.",
+    suspects: [
+      {
+        id: 'marcus', 
+        name: 'Marcus Vance', 
+        role: 'Co-Founder & Brother', 
+        color: '#6e5849', 
+        imageUrl: 'Gemini_Generated_Image_eqagypeqagypeqag.jpeg', 
+        audioUrl: 'luvvoice.com-20260902-G5o3nR.mp3',
+        statement: "I went up to his penthouse at 9:15 PM to confront him about cutting me out of $4.2M in buyout shares! We got into a fistfight, I knocked over his whiskey decanter, smashed it, and cut my hand bleeding everywhere. I stormed out and stepped into the elevator at 9:28 PM. I didn't kill him — he was alive and cursing at me when I left!"
+      },
+      {
+        id: 'elena', 
+        name: 'Elena Rostova', 
+        role: 'Chief Operating Officer', 
+        color: '#2b3a42', 
+        imageUrl: 'Gemini_Generated_Image_eqagypeqagypeqag (Copy 3).jpeg', 
+        audioUrl: 'luvvoice.com-20260902-McUXwj.mp3',
+        statement: "I was in my 4th-floor office all evening working on quarterly reports until 10:00 PM. I used my keycard twice to grab coffee from the executive lounge. I never went near Arthur's penthouse after our 6:00 PM meeting, and I ordered a rideshare home from the lobby at 9:52 PM."
+      },
+      {
+        id: 'david', 
+        name: 'David Chen', 
+        role: 'Head of Security', 
+        color: '#3f4b3b', 
+        imageUrl: 'Gemini_Generated_Image_eqagypeqagypeqag (Copy).jpeg', 
+        audioUrl: 'luvvoice.com-20260902-YI2Yi7.mp3',
+        statement: "I was running manual camera diagnostics from 9:00 PM to 9:45 PM down in the basement control room. Camera 4 on the 12th floor flickered off because of a known power glitch. I didn't leave the basement until security raised the emergency alarm."
+      },
+      {
+        id: 'sarah', 
+        name: 'Sarah Jenkins', 
+        role: 'Personal Assistant', 
+        color: '#7a5230', 
+        imageUrl: 'Gemini_Generated_Image_eqagypeqagypeqag (Copy 2).jpeg', 
+        audioUrl: 'luvvoice.com-20260902-IyAeFw.mp3',
+        statement: "I served Mr. Vance his evening chamomile tea in the penthouse at 8:15 PM. He was extremely stressed. I organized his desk, swiped out at 8:30 PM, and left the building at 8:31 PM to go straight to 'The Rusty Nail' pub down the street."
+      }
+    ],
+    roleImages: {
+      cctv: 'Gemini_Generated_Image_nt6ttynt6ttynt6t.jpeg',
+      access: 'Gemini_Generated_Image_d2p7o2d2p7o2d2p7.jpeg',
+      medical: 'Gemini_Generated_Image_32alex32alex32al.jpeg',
+      financial: 'Gemini_Generated_Image_o4x1rro4x1rro4x1.jpeg'
+    }
+  }
+];
+const ROLE_ORDER = ['cctv','access','medical','financial'];
+const ROLE_META = {
+  host:     {label:'Lead Investigator', short:'Lead',   desc:"You run the questioning and make the final call. Suspect dossiers are yours alone — tap a suspect to hear their statement, then name the killer when you're sure."},
+  cctv:     {label:'CCTV Analyst', short:'CCTV',        desc:"Camera footage, timestamps and blind spots are yours alone. Report what you see — don't wait to be asked."},
+  access:   {label:'Access & Movement Logs', short:'Access', desc:"Door logs, keycards and alarm records are yours alone. Machine timestamps don't lie — people do."},
+  medical:  {label:'Medical & Forensic Analyst', short:'Medical', desc:"The autopsy and forensic findings are yours alone. Time of death narrows the field faster than anything else."},
+  financial:{label:'Financial Analyst', short:'Financial', desc:"Bank records, debts and motive live here, and only here. Follow the money."}
+};
+
+/* ---------------------------- state ---------------------------- */
+let S = {
+  view:'home',            // home | lobby | cinema | briefing | waiting_accusation | resolved
+  playerId:null,
+  playerName:'',
+  roomCode:null,
+  room:null,               // last synced room object
+  introSeen:false,
+  playingSuspect:null,     // suspect id whose waveform/transcript is showing
+  accuseMode:false,
+  pendingSuspect:null,     // suspect chosen, awaiting confirm modal
+  activeRoleTab:null,      // which of a multi-role player's roles is currently shown
+  seenRoleIntros:{},       // roles whose briefing popup has already been shown this round
+  briefingOpenFor:null,    // role whose briefing popup is currently open, or null
+  lightboxUrl:null,        // case-file image currently zoomed, or null
+  clockInterval:null,      // ticking interval id for the host's case clock
+  poll:null,
+  lastRoomJSON:null,
+  err:''
+};
+
+/* ---------------------------- helpers ---------------------------- */
+function uid(){ return (crypto.randomUUID ? crypto.randomUUID() : 'p-'+Math.random().toString(36).slice(2)); }
+function genCode(){
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L
+  let c=''; for(let i=0;i<5;i++) c+=chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function getCase(id){ return CASES.find(c=>c.id===id); }
+function toast(msg){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2900);
+}
+// Talks to the Axum backend's two handlers: PUT saves (full overwrite),
+// GET loads (404 -> no room with that code). Same call sites, same return
+// contract (saveRoom: truthy/falsy, loadRoom: object or null) as before —
+// nothing else in the game had to change for this swap.
+async function saveRoom(room){
+  room.updatedAt = Date.now();
+  try{
+    const res = await fetch(`${API_BASE}/api/rooms/${room.code}`, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(room)
+    });
+    if(!res.ok) toast('Could not sync — try again');
+    return res.ok;
+  }catch(e){ console.error('save error',e); toast('Connection hiccup — retrying next sync'); }
+}
+async function loadRoom(code){
+  try{
+    const res = await fetch(`${API_BASE}/api/rooms/${code}`);
+    if(res.status===404) return null;
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+
+/* ---------------------------- flows ---------------------------- */
+async function hostGame(name){
+  if(!name.trim()) return toast('Enter a name first');
+  S.playerId = uid(); S.playerName = name.trim();
+  S.roomCode = genCode();
+  const room = {
+    code:S.roomCode,
+    phase:'lobby', // lobby | active | accusation | resolved
+    caseId:null,
+    players:[{id:S.playerId, name:S.playerName, roles:['host']}],
+    accusation:null
+  };
+  await saveRoom(room);
+  S.room = room; S.view='lobby';
+  startPolling(); render();
+}
+
+async function joinGame(name, codeRaw){
+  const code = codeRaw.trim().toUpperCase();
+  if(!name.trim()) return toast('Enter a name first');
+  if(code.length<4) return toast('Enter the room code');
+  const room = await loadRoom(code);
+  if(!room) return toast('No room found with that code');
+  if(room.phase!=='lobby') return toast('That case has already started');
+  const nonHost = room.players.filter(p=>!p.roles.includes('host'));
+  if(nonHost.length>=4) return toast('Room full — 4 detectives already assigned');
+  // Roles aren't assigned at join time — they're split fairly across whoever
+  // has joined by the time the host starts the case (see distributeRoles).
+  S.playerId = uid(); S.playerName = name.trim(); S.roomCode = code;
+  room.players.push({id:S.playerId, name:S.playerName, roles:[]});
+  await saveRoom(room);
+  S.room = room; S.view='lobby';
+  startPolling(); render();
+}
+
+async function pickCase(caseId){
+  if(!S.room || !S.room.players.find(p=>p.id===S.playerId)?.roles.includes('host')) return;
+  S.room.caseId = caseId; await saveRoom(S.room); render();
+}
+
+// Splits the 4 analyst roles across however many non-host detectives are
+// present, round-robin, so every role is always covered and no role is ever
+// handed to more than one player. With 4+ players it's one role each; with
+// fewer, some players end up holding two roles.
+function distributeRoles(nonHostPlayers){
+  const n = nonHostPlayers.length;
+  if(n===0) return;
+  nonHostPlayers.forEach(p=>p.roles=[]);
+  ROLE_ORDER.forEach((role, i)=>{ nonHostPlayers[i % n].roles.push(role); });
+}
+
+async function beginInvestigation(){
+  if(!S.room.caseId) return toast('Choose a case first');
+  const nonHost = S.room.players.filter(p=>!p.roles.includes('host'));
+  if(nonHost.length===0) return toast('You need at least one other detective to join before starting');
+  distributeRoles(nonHost);
+  S.room.phase='active';
+  S.room.investigationStartedAt = Date.now();
+  S.room.resolvedAt = null;
+  await saveRoom(S.room);
+  S.introSeen=false; S.activeRoleTab=null; S.seenRoleIntros={}; S.briefingOpenFor=null; render();
+}
+
+async function submitAccusation(suspectId){
+  const c = getCase(S.room.caseId);
+  const correct = suspectId===c.murdererId;
+  S.room.accusation = {suspectId, correct};
+  S.room.phase='resolved';
+  S.room.resolvedAt = Date.now();
+  await saveRoom(S.room);
+  render();
+}
+
+async function playAgain(){
+  S.room.players.forEach(p=>{ if(!p.roles.includes('host')) p.roles=[]; });
+  S.room.phase='lobby'; S.room.caseId=null; S.room.accusation=null;
+  S.room.investigationStartedAt=null; S.room.resolvedAt=null;
+  await saveRoom(S.room);
+  S.introSeen=false; S.accuseMode=false; S.pendingSuspect=null; S.activeRoleTab=null;
+  S.seenRoleIntros={}; S.briefingOpenFor=null; S.lightboxUrl=null;
+  render();
+}
+
+function startPolling(){
+  if(S.poll) clearInterval(S.poll);
+  S.poll = setInterval(async ()=>{
+    if(!S.roomCode) return;
+    const fresh = await loadRoom(S.roomCode);
+    if(fresh){
+      const j = JSON.stringify(fresh);
+      if(j!==S.lastRoomJSON){ S.lastRoomJSON=j; S.room=fresh; render(); }
+    }
+  }, 2200);
+}
+
+/* ---------------------------- placeholder art ---------------------------- */
+function silhouette(color, idx){
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+    <rect width="100" height="100" fill="${color}"/>
+    <rect width="100" height="100" fill="#000" opacity="0.18"/>
+    <circle cx="50" cy="38" r="16" fill="#000" opacity="0.35"/>
+    <path d="M20 100 C20 70 34 60 50 60 C66 60 80 70 80 100 Z" fill="#000" opacity="0.35"/>
+    <rect x="0" y="0" width="100" height="100" fill="url(#grad${idx})" opacity="0.5"/>
+    <defs><linearGradient id="grad${idx}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </linearGradient></defs>
+  </svg>`;
+}
+function fileIcon(){
+  return `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6b5f4c" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="1.5"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15.5l-5-5-4 4-3-3-6 6"/></svg>`;
+}
+function heartIcon(){
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.7-10.2-9.3C.2 8.9 1.4 5.4 4.7 4.4c2-.6 4 .2 5.3 2 1.3-1.8 3.3-2.6 5.3-2 3.3 1 4.5 4.5 2.9 7.3C19.5 16.3 12 21 12 21z"/></svg>`;
+}
+function mailIcon(){
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3.5 6.5l8.5 7 8.5-7"/></svg>`;
+}
+
+/* ---------------------------- render: screens ---------------------------- */
+function myRoles(){
+  if(!S.room) return [];
+  const p = S.room.players.find(p=>p.id===S.playerId);
+  return p ? (p.roles||[]) : [];
+}
+function isHost(){ return myRoles().includes('host'); }
+
+function rolesShortLabel(roles){
+  if(!roles || roles.length===0) return 'Detective';
+  return roles.map(r=>ROLE_META[r].short).join(' + ');
+}
+
+function roomBarHtml(){
+  if(!S.room) return '';
+  const showClock = isHost() && S.room.investigationStartedAt && S.room.phase!=='lobby';
+  return `<div class="roombar">
+    <div class="code">ROOM ${S.room.code}</div>
+    ${showClock ? `<div class="case-clock" id="case-clock" title="Time on this case">${formatElapsed(clockElapsedMs())}</div>` : ''}
+    <div class="role">you are&nbsp;<b>${escapeHtml(rolesShortLabel(myRoles()))}</b></div>
+  </div>`;
+}
+
+// Host-only case clock: starts ticking the moment the investigation begins,
+// freezes the instant an accusation is made. Elapsed time is derived from
+// timestamps stored on the room, so it stays correct even if the host's
+// device reloads mid-case.
+function clockElapsedMs(){
+  if(!S.room || !S.room.investigationStartedAt) return 0;
+  const end = (S.room.phase==='resolved' && S.room.resolvedAt) ? S.room.resolvedAt : Date.now();
+  return Math.max(0, end - S.room.investigationStartedAt);
+}
+function formatElapsed(ms){
+  const totalSec = Math.floor(ms/1000);
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  const s = totalSec%60;
+  const pad = n=>String(n).padStart(2,'0');
+  return h>0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+// Ticks the on-screen clock every second via a direct DOM update (not a
+// full render — cheaper, and doesn't disturb anything else on screen).
+// Starts/stops itself based on whether a live clock is currently needed.
+function ensureClockTicking(){
+  const needsTicking = !!(S.room && isHost() && S.room.investigationStartedAt && (S.room.phase==='active' || S.room.phase==='accusation'));
+  if(needsTicking && !S.clockInterval){
+    S.clockInterval = setInterval(()=>{
+      const el = document.getElementById('case-clock');
+      if(el) el.textContent = formatElapsed(clockElapsedMs());
+    }, 1000);
+  }
+  if(!needsTicking && S.clockInterval){
+    clearInterval(S.clockInterval); S.clockInterval=null;
+  }
+}
+
+function renderHome(){
+  return `
+  <div class="wordmark">
+    <div class="lamp-glow"></div>
+    <h1>CASE FILE</h1>
+    <div class="sub">Five roles. One case file each. One truth.</div>
+  </div>
+
+  <div class="mode-card">
+    <div class="field">
+      <label>Your name</label>
+      <input id="in-name-host" placeholder="Detective..." maxlength="24"/>
+    </div>
+    <button class="btn btn-primary" onclick="uiHost()">Host a Case</button>
+  </div>
+
+  <div class="divider">— or —</div>
+
+  <div class="mode-card">
+    <div class="field">
+      <label>Your name</label>
+      <input id="in-name-join" placeholder="Detective..." maxlength="24"/>
+    </div>
+    <div class="field">
+      <label>Room code</label>
+      <input id="in-code" class="code-input" placeholder="XXXXX" maxlength="5"/>
+    </div>
+    <button class="btn btn-outline" onclick="uiJoin()">Join a Case</button>
+  </div>
+
+  <p class="hint">One player hosts on a shared screen or their own phone and picks the case. Everyone else joins with the room code and gets a private role — CCTV, Access Logs, Medical, or Financial. Fewer than four detectives? The roles get split between you so nothing goes uncovered, and you can switch between your files at any time. The host runs the questioning and makes the final call.</p>
+  <p class="footnote">Game data syncs through shared, unencrypted session storage — skip real personal info in your detective name.</p>
+  `;
+}
+
+function renderLobby(){
+  const room=S.room, host=isHost();
+  const nonHost = room.players.filter(p=>!p.roles.includes('host'));
+  const rosterHtml = room.players.map(p=>{
+    return `<li><span class="rname">${escapeHtml(p.name)}${p.id===S.playerId?' (you)':''}</span><span class="rrole">${escapeHtml(rolesShortLabel(p.roles))}</span></li>`;
+  }).join('');
+
+  const casesHtml = CASES.map(c=>`
+    <div class="case-tile ${room.caseId===c.id?'selected':''}" onclick="${host?`pickCase('${c.id}')`:''}">
+      <div class="case-thumb" style="background:${c.thumbColor}">${c.thumb}</div>
+      <div><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.tagline)}</p></div>
+    </div>`).join('') + `
+    <div class="case-tile locked">
+      <div class="case-thumb" style="background:#3a3529">?</div>
+      <div><h3>The Ninth Floor</h3><p>Coming soon</p></div>
+    </div>`;
+
+  return `
+  ${roomBarHtml()}
+  <div class="room-tag">
+    <div>
+      <div class="lab">SHARE THIS ROOM CODE</div>
+      <div class="code-big">${room.code}</div>
+    </div>
+    <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="copyCode()">Copy</button>
+  </div>
+
+  <div class="folder">
+    <span class="tab">Roster — ${room.players.length}/5</span>
+    <ul class="roster">${rosterHtml}</ul>
+    ${host ? (
+      nonHost.length===0
+        ? `<p class="muted-dark" style="margin-top:10px;">Waiting for at least one other detective to join with code <b>${room.code}</b> — you need one to start.</p>`
+        : nonHost.length<4
+          ? `<p class="muted-dark" style="margin-top:10px;">Waiting for more detectives to join with code <b>${room.code}</b> — or start now and the 4 roles will split between whoever's here.</p>`
+          : ''
+    ) : ''}
+  </div>
+
+  ${host ? `
+    <h3 style="font-size:14px; color:var(--muted); letter-spacing:0.06em; margin:20px 0 10px;">Choose a case</h3>
+    ${casesHtml}
+    <button class="btn btn-primary" ${(room.caseId && nonHost.length>0)?'':'disabled'} onclick="beginInvestigation()" style="margin-top:6px;">Begin Investigation</button>
+    ${nonHost.length===0 ? `<p class="hint" style="text-align:center; margin-top:8px;">Needs at least one other player in the room.</p>` : ''}
+  ` : `
+    <div class="waiting">
+      <div class="pulse"></div>
+      <h2>${room.caseId? 'Case selected: '+escapeHtml(getCase(room.caseId).title) : 'Waiting on the Lead Investigator'}</h2>
+      <p>${room.caseId? 'Get ready — the briefing starts any moment.' : "They're choosing a case from the file room."}</p>
+    </div>
+  `}
+  `;
+}
+
+function renderCinema(){
+  const c = getCase(S.room.caseId);
+  // simulated cinematic sequence, orchestrated once
+  setTimeout(()=>{
+    const el = document.getElementById('cinema-count');
+    if(!el) return;
+    let n=3;
+    const iv = setInterval(()=>{
+      n--;
+      const countEl = document.getElementById('cinema-count');
+      if(!countEl){ clearInterval(iv); return; }
+      if(n>0){ countEl.textContent = n; }
+      else{
+        clearInterval(iv);
+        document.getElementById('cinema-leader').style.display='none';
+        document.getElementById('cinema-titlecard').style.display='flex';
+      }
+    }, 700);
+  }, 50);
+
+  const hasVideo = !!c.introVideoUrl;
+  return `
+  <div class="cinema">
+    <div class="grain"></div>
+    ${hasVideo ? `
+      <video src="${c.introVideoUrl}" autoplay controls onended="finishIntro()" style="z-index:2;"></video>
+    ` : `
+      <div id="cinema-leader" style="z-index:2;">
+        <div class="count" id="cinema-count">3</div>
+      </div>
+      <div id="cinema-titlecard" style="display:none; flex-direction:column; align-items:center; z-index:2;">
+        <div class="display title">${escapeHtml(c.title)}</div>
+        <div class="tagline">${escapeHtml(c.briefing)}</div>
+        <button class="btn btn-primary go" onclick="finishIntro()">Enter the Case File</button>
+      </div>
+    `}
+    <button class="skip" onclick="finishIntro()">Skip</button>
+  </div>
+  `;
+}
+
+// Each analyst role's entire case file is one image, always shown inside a
+// landscape (16:9) frame regardless of the source image's own orientation —
+// object-fit:contain keeps the whole photo visible, letterboxed if needed,
+// so nothing gets cropped out of evidence you actually need to read.
+function caseImageHtml(url, roleKind){
+  if(!url){
+    return `
+    <div class="case-photo-frame placeholder">
+      <div class="ph-inner">
+        ${fileIcon()}
+        <p>No file uploaded yet</p>
+        <p class="ph-sub">Add roleImages.${roleKind} in CASE_DATA to show it here</p>
+      </div>
+    </div>`;
+  }
+  const safeUrl = url.replace(/'/g,"\\'");
+  return `
+    <div class="case-photo-frame" onclick="openLightbox('${safeUrl}')">
+      <img src="${url}" alt="Case file"/>
+      <span class="zoom-hint">Tap to zoom</span>
+    </div>`;
+}
+
+function renderLightbox(){
+  if(!S.lightboxUrl) return '';
+  return `
+  <div class="lightbox-back" onclick="if(event.target===this) closeLightbox();">
+    <div class="lightbox-wrap">
+      <button class="lightbox-close" onclick="closeLightbox()">Close ✕</button>
+      <div class="lightbox-frame"><img src="${S.lightboxUrl}" alt="Case file, zoomed"/></div>
+    </div>
+  </div>`;
+}
+function openLightbox(url){ S.lightboxUrl=url; render(); }
+function closeLightbox(){ S.lightboxUrl=null; render(); }
+
+// A short briefing pops up automatically the first time a player lands on a
+// given role (and again on switching to a new one they haven't seen), so
+// they know what they're holding before they open the file. Reopenable any
+// time via the "Briefing" button on their dashboard.
+function renderRoleBriefingPopup(){
+  if(!S.briefingOpenFor) return '';
+  const meta = ROLE_META[S.briefingOpenFor];
+  return `
+  <div class="briefing-back" onclick="if(event.target===this) closeBriefingPopup();">
+    <div class="briefing-card">
+      <span class="tab">Role Briefing</span>
+      <span class="stamp corner-stamp">Eyes Only</span>
+      <h2>${escapeHtml(meta.label)}</h2>
+      <p class="desc">${escapeHtml(meta.desc)}</p>
+      <div class="todo">
+        <p><b>What to do:</b> Study your case file image closely — tap it to zoom in and read every detail. Say what you find out loud to your Lead Investigator; nobody else can see this screen.</p>
+      </div>
+      <button class="btn btn-primary" style="margin-top:18px;" onclick="closeBriefingPopup()">Open My File</button>
+    </div>
+  </div>`;
+}
+function openBriefingPopup(role){ S.briefingOpenFor=role; render(); }
+function closeBriefingPopup(){ S.briefingOpenFor=null; render(); }
+
+function renderHostBoard(c){
+  const suspects = c.suspects;
+  const cards = suspects.map((s,idx)=>{
+    const playing = S.playingSuspect===s.id;
+    const chosen = S.pendingSuspect===s.id;
+    return `
+    <div class="suspect-card ${playing?'playing':''} ${chosen?'chosen':''}" role="button" tabindex="0"
+         onclick="onSuspectTap('${s.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); onSuspectTap('${s.id}');}">
+      <div class="mugshot">${s.imageUrl?`<img src="${s.imageUrl}" style="width:100%;height:100%;object-fit:cover;"/>`:silhouette(s.color, idx)}
+        <span class="idnum">SUBJECT 0${idx+1}</span>
+      </div>
+      <div class="sc-body">
+        <h4>${escapeHtml(s.name)}</h4>
+        <div class="srole">${escapeHtml(s.role)}</div>
+        ${playing?`<div class="waveform">${Array.from({length:14}).map((_,i)=>`<span style="animation-delay:${(i*0.06).toFixed(2)}s"></span>`).join('')}</div>
+        <div class="transcript">"${escapeHtml(s.statement)}"</div>
+        <button class="stop-audio-btn" onclick="event.stopPropagation(); stopSuspectAudio();">Stop</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="role-banner">
+    <div class="k">CASE FILE — ${escapeHtml(c.title.toUpperCase())}</div>
+    <h2>Lead Investigator</h2>
+    <p>${escapeHtml(ROLE_META.host.desc)}</p>
+  </div>
+
+  <div class="folder">
+    <span class="tab">Victim</span>
+    <h3 style="font-size:14px;">${escapeHtml(c.victim)}</h3>
+    <p class="muted-dark">${escapeHtml(c.location)} · found ${escapeHtml(c.discovered)}</p>
+  </div>
+
+  <h3 style="font-size:14px; color:var(--muted); letter-spacing:0.06em; margin:20px 0 10px;">Suspects — tap to question</h3>
+  <div class="suspect-grid">${cards}</div>
+
+  ${S.accuseMode ? `
+    <div class="accuse-warning">Naming a suspect ends the investigation for everyone. Choose the suspect you believe is guilty above.</div>
+    <button class="btn btn-outline" onclick="exitAccuseMode()">Cancel</button>
+  ` : `
+    <button class="btn btn-danger" onclick="enterAccuseMode()">Name the Murderer</button>
+  `}
+  `;
+}
+
+function renderAnalystBoard(c, roleKind){
+  const meta = ROLE_META[roleKind];
+  const img = (c.roleImages && c.roleImages[roleKind]) || '';
+  return `
+  <div class="role-banner">
+    <div class="k">CASE FILE — ${escapeHtml(c.title.toUpperCase())}</div>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+      <h2>${escapeHtml(meta.label)}</h2>
+      <button class="btn btn-outline btn-sm" style="flex-shrink:0;" onclick="openBriefingPopup('${roleKind}')">Briefing</button>
+    </div>
+    <p>${escapeHtml(meta.desc)}</p>
+  </div>
+  <div class="folder">
+    <span class="tab">Victim</span>
+    <h3 style="font-size:14px;">${escapeHtml(c.victim)}</h3>
+    <p class="muted-dark">${escapeHtml(c.location)} · found ${escapeHtml(c.discovered)}</p>
+  </div>
+  <h3 style="font-size:14px; color:var(--muted); letter-spacing:0.06em; margin:20px 0 10px;">Your file — <span style="color:var(--stamp)">eyes only</span></h3>
+  ${caseImageHtml(img, roleKind)}
+  <div class="waiting" style="padding:24px 10px;">
+    <p>Report what you find to your Lead Investigator out loud — they can't see this file.</p>
+  </div>
+  `;
+}
+
+// A player can hold more than one role when fewer than 4 detectives joined.
+// Show a tab strip to switch between their assigned files; each tab is its
+// own sealed dossier, same as if a different person held it.
+function renderAnalystMulti(c, roles){
+  if(!roles.length){
+    return `<div class="waiting"><div class="pulse"></div><h2>Waiting on role assignment</h2><p>The Lead Investigator needs to begin the investigation first.</p></div>`;
+  }
+  if(!S.activeRoleTab || !roles.includes(S.activeRoleTab)) S.activeRoleTab = roles[0];
+  if(!S.seenRoleIntros[S.activeRoleTab]){
+    S.seenRoleIntros[S.activeRoleTab] = true;
+    S.briefingOpenFor = S.activeRoleTab;
+  }
+  const tabs = roles.map(r=>`
+    <button class="rtab ${r===S.activeRoleTab?'active':''}" onclick="switchRoleTab('${r}')">
+      <span class="dot"></span>${escapeHtml(ROLE_META[r].short)}
+    </button>`).join('');
+  const note = roles.length>1
+    ? `<p class="multi-note">You're covering ${roles.length} roles this case — switch tabs to see each file. Nobody else can see them either.</p>`
+    : '';
+  return `<div class="role-tabs">${tabs}</div>${note}${renderAnalystBoard(c, S.activeRoleTab)}`;
+}
+function switchRoleTab(r){ S.activeRoleTab=r; render(); }
+
+function renderBriefing(){
+  const c = getCase(S.room.caseId);
+  if(S.room.phase==='accusation') return renderAccusationWait(c);
+  if(S.room.phase==='resolved') return renderResolved(c);
+  const roles = myRoles();
+  const body = roles.includes('host') ? renderHostBoard(c) : renderAnalystMulti(c, roles);
+  return `${roomBarHtml()}${body}${renderRoleBriefingPopup()}${renderLightbox()}`;
+}
+
+function renderAccusationWait(c){
+  const roles = myRoles();
+  if(roles.includes('host')) return `${roomBarHtml()}${renderHostBoard(c)}`;
+  return `${roomBarHtml()}
+  <div class="waiting">
+    <div class="pulse"></div>
+    <h2>Final interrogation underway</h2>
+    <p>The Lead Investigator is naming the killer. Hold tight.</p>
+  </div>`;
+}
+
+function renderResolved(c){
+  const acc = S.room.accusation;
+  const named = c.suspects.find(s=>s.id===acc.suspectId);
+  const killer = c.suspects.find(s=>s.id===c.murdererId);
+  const elapsed = S.room.investigationStartedAt
+    ? formatElapsed((S.room.resolvedAt||Date.now()) - S.room.investigationStartedAt)
+    : null;
+  return `${roomBarHtml()}
+  <div class="result-hero">
+    <div class="bigstamp ${acc.correct?'':'lose'}">${acc.correct?'Case Closed':'Killer Escapes'}</div>
+    <p class="who">Accused: <b>${escapeHtml(named.name)}</b></p>
+    <p class="who">Actual killer: <b>${escapeHtml(killer.name)}</b></p>
+    ${elapsed ? `<p class="who">Case time: <b>${elapsed}</b></p>` : ''}
+  </div>
+  <div class="folder">
+    <span class="tab">The Truth</span>
+    <p style="font-size:13.5px; line-height:1.6; color:#3a2f1c;">${escapeHtml(c.solutionNote)}</p>
+  </div>
+  ${isHost() ? `<button class="btn btn-primary" onclick="playAgain()">Play Another Case</button>` :
+    `<div class="waiting" style="padding:14px 10px 0;"><p>Ask your Lead Investigator to start a new case when ready.</p></div>`}
+
+  <div class="postgame">
+    <p class="postgame-label">Enjoyed the case?</p>
+    <div class="btn-stack">
+      <a class="btn btn-donate" href="${DONATE_LINK}" target="_blank" rel="noopener">
+        <span class="btn-icon">${heartIcon()}</span>Support the Creator
+      </a>
+      <p class="btn-sub">Opens a secure PayPal checkout page in a new tab.</p>
+    </div>
+    <div class="btn-stack">
+      <a class="btn btn-outline" href="${reviewMailtoHref(c)}">
+        <span class="btn-icon">${mailIcon()}</span>Send Feedback by Email
+      </a>
+      <p class="btn-sub">Opens your email app with this case pre-filled in.</p>
+    </div>
+  </div>
+  `;
+}
+
+function reviewMailtoHref(c){
+  const subject = encodeURIComponent(`Feedback on "${c.title}"`);
+  const body = encodeURIComponent(
+    `Case: ${c.title}\n\nWhat I liked:\n\n\nWhat could be better:\n\n`
+  );
+  return `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`;
+}
+
+function renderPendingModal(){
+  if(!S.pendingSuspect) return '';
+  const c = getCase(S.room.caseId);
+  const s = c.suspects.find(x=>x.id===S.pendingSuspect);
+  return `
+  <div class="modal-back" onclick="if(event.target===this){S.pendingSuspect=null; render();}">
+    <div class="modal">
+      <h3>Accuse ${escapeHtml(s.name)}?</h3>
+      <p>This ends the investigation for the whole team. There's no walking it back.</p>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="S.pendingSuspect=null; render();">Not yet</button>
+        <button class="btn btn-danger" style="background:var(--stamp); color:#fff;" onclick="confirmAccusation()">Confirm</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------------------------- main render ---------------------------- */
+function render(){
+  const app = document.getElementById('app');
+  let html='';
+  if(S.view==='home') html = renderHome();
+  else if(S.view==='lobby'){
+    if(S.room && S.room.phase==='active'){
+      // The intro video is a host-only moment — everyone else jumps
+      // straight into their case file so the room is working the case
+      // together while the host watches, instead of everyone staring at
+      // the same video in silence.
+      S.view = isHost() ? 'cinema' : 'briefing';
+      return render();
+    }
+    if(S.room && (S.room.phase==='accusation'||S.room.phase==='resolved')){ S.view='briefing'; return render(); }
+    html = renderLobby();
+  }
+  else if(S.view==='cinema'){
+    if(S.introSeen){ S.view='briefing'; return render(); }
+    html = renderCinema();
+  }
+  else if(S.view==='briefing'){
+    if(S.room.phase==='lobby'){ S.view='lobby'; return render(); }
+    html = renderBriefing() + renderPendingModal();
+  }
+  app.innerHTML = html;
+  ensureClockTicking();
+}
+
+/* ---------------------------- ui event glue ---------------------------- */
+function uiHost(){ hostGame(document.getElementById('in-name-host').value); }
+function uiJoin(){ joinGame(document.getElementById('in-name-join').value, document.getElementById('in-code').value); }
+function copyCode(){
+  const code=S.room.code;
+  if(navigator.clipboard){ navigator.clipboard.writeText(code).then(()=>toast('Code copied')); }
+  else{ toast('Room code: '+code); }
+}
+let currentAudio = null; // the one suspect audio clip allowed to play at a time
+
+function onSuspectTap(id){
+  if(S.accuseMode){ S.pendingSuspect=id; render(); return; }
+  stopSuspectAudioSilent(); // only one suspect talks at a time — cut off whoever was mid-statement
+  const c = getCase(S.room.caseId);
+  const s = c.suspects.find(x=>x.id===id);
+  S.playingSuspect=id; render();
+  if(s.audioUrl){
+    currentAudio = new Audio(s.audioUrl);
+    currentAudio.addEventListener('ended', ()=>{
+      currentAudio = null;
+      if(S.playingSuspect===id){ S.playingSuspect=null; render(); }
+    });
+    currentAudio.play().catch(()=>{});
+  } else {
+    // simulated waveform already animating via CSS; nothing else to trigger
+  }
+}
+// A real stop, not a pause: kills the clip and rewinds it to 0, so tapping
+// the same suspect again starts their statement over from the beginning.
+// Silent = no render (caller is about to render anyway, e.g. right before
+// starting a new clip or switching phases). Use stopSuspectAudio() from UI.
+function stopSuspectAudioSilent(){
+  if(currentAudio){
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+  S.playingSuspect = null;
+}
+function stopSuspectAudio(){ stopSuspectAudioSilent(); render(); }
+function finishIntro(){ S.introSeen=true; render(); }
+async function enterAccuseMode(){
+  stopSuspectAudioSilent();
+  S.accuseMode=true;
+  S.room.phase='accusation'; await saveRoom(S.room);
+  render();
+}
+async function exitAccuseMode(){
+  S.accuseMode=false; S.pendingSuspect=null;
+  S.room.phase='active'; await saveRoom(S.room);
+  render();
+}
+async function confirmAccusation(){
+  const id = S.pendingSuspect; S.pendingSuspect=null;
+  await submitAccusation(id);
+}
+
+render();
+</script>
+</body>
+</html>
