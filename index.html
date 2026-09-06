@@ -130,15 +130,6 @@
   .folder-dark .tab{ background:#2b2519; color:var(--amber); border-color:var(--line); }
   .folder-dark h2, .folder-dark h3{ color:var(--paper); }
 
-  .stamp{
-    display:inline-block; font-family:'Oswald',sans-serif; font-weight:700;
-    font-size:11px; letter-spacing:0.14em; padding:3px 9px;
-    border:2px solid var(--stamp); color:var(--stamp);
-    border-radius:2px; transform:rotate(-3deg);
-    text-transform:uppercase;
-  }
-  .stamp.ok{ border-color:var(--evidence); color:var(--evidence); }
-
   /* ---------- home ---------- */
   .mode-card{
     padding:18px; border:1px solid var(--line); border-radius:2px;
@@ -236,7 +227,6 @@
   .rtab.active{ border-color:var(--amber); color:var(--amber); background:#2a2114; }
   .rtab .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--muted); margin-right:6px; vertical-align:middle;}
   .rtab.active .dot{ background:var(--amber); }
-  .multi-note{ font-size:11.5px; color:var(--muted); margin:-10px 0 16px; line-height:1.5; }
 
   .exhibit{
     padding:16px; margin-bottom:12px;
@@ -300,12 +290,43 @@
     padding:4px 12px 8px; border-radius:4px 4px 0 0; font-family:'Oswald',sans-serif; font-size:11px; font-weight:600;
     letter-spacing:0.08em; color:#3b2c14; transform:rotate(-1.5deg);
   }
-  .briefing-card .corner-stamp{ position:absolute; top:20px; right:20px; }
-  .briefing-card h2{ font-size:20px; color:#231a0c; margin-top:6px; padding-right:74px; line-height:1.25; }
+  .briefing-card h2{ font-size:20px; color:#231a0c; margin-top:6px; line-height:1.25; }
   .briefing-card .desc{ font-size:13px; line-height:1.6; margin-top:10px; color:#3a2f1c; }
   .briefing-card .todo{ margin-top:14px; padding-top:14px; border-top:1px dashed rgba(0,0,0,0.18); }
   .briefing-card .todo p{ font-size:12.5px; line-height:1.6; color:#3a2f1c; margin:0; }
   .briefing-card .todo b{ color:#1c1509; }
+
+  /* ---------- host warning: "you're a shared screen, not a player" ---------- */
+  .warn-back{
+    position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:280;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .warn-card{
+    position:relative; background:#170d0b; border:2px solid #ff2b2b; border-radius:3px;
+    padding:28px 24px 24px; max-width:380px; width:100%; text-align:center;
+    animation:stamp-in 0.45s cubic-bezier(.2,.9,.3,1) forwards, warn-glow 1.6s ease-in-out infinite;
+  }
+  @keyframes warn-glow{
+    0%,100%{ box-shadow:0 0 34px rgba(255,43,43,0.35), 0 20px 50px rgba(0,0,0,0.6); }
+    50%{ box-shadow:0 0 56px rgba(255,43,43,0.65), 0 20px 50px rgba(0,0,0,0.6); }
+  }
+  .warn-photo{
+    width:112px; height:112px; margin:0 auto 18px; position:relative; border-radius:4px;
+    overflow:hidden; border:2px solid rgba(255,43,43,0.6);
+  }
+  .warn-photo svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .warn-title{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:19px; line-height:1.3;
+    color:#ff2b2b; text-transform:uppercase; letter-spacing:0.02em;
+    text-shadow:0 0 18px rgba(255,43,43,0.65);
+  }
+  .warn-sub{
+    font-family:'Oswald',sans-serif; font-weight:600; font-size:12.5px; color:#ff9a90;
+    text-transform:uppercase; letter-spacing:0.14em; margin-top:6px;
+  }
+  .warn-body{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:16px; }
+  .btn-warn{ background:#ff2b2b; color:#170d0b; border-color:#ff2b2b; margin-top:20px; }
+  @media (prefers-reduced-motion: reduce){ .warn-card{ animation:none; } }
 
   /* ---------- suspects (host) ---------- */
   .suspect-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; align-items:start; }
@@ -344,23 +365,35 @@
   }
   @keyframes fadein{ to{opacity:1;} }
 
-  /* ---------- horror-style pointer callout ---------- */
-  .horror-pointer{ display:flex; flex-direction:column; align-items:center; gap:3px; margin:2px 0 16px; text-align:center; }
-  .horror-pointer .hp-arrow-svg{
-    filter:drop-shadow(0 0 6px rgba(255,59,48,0.65));
-    animation:hp-bounce 0.9s ease-in-out infinite;
+  /* ---------- spotlight: blur everything except the actual target ---------- */
+  /* #spotlight-mount is a fixed, full-viewport, pointer-events:none layer.
+     Its children are positioned in JS (updateSpotlight()) to exactly frame
+     whatever real element it's pointing at — four blur panels covering the
+     rest of the screen, a glowing ring around the target itself (left
+     completely unblurred and untouched), and the blood arrow above it. */
+  #spotlight-mount{ position:fixed; inset:0; z-index:150; pointer-events:none; }
+  .sp-blur{
+    position:fixed; background:rgba(8,5,4,0.55);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   }
-  .horror-pointer span{
-    font-family:'Oswald',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.12em;
-    color:#ff3b30; text-transform:uppercase;
-    text-shadow:0 0 10px rgba(255,59,48,0.75), 0 0 22px rgba(255,59,48,0.35);
-    animation:hp-pulse 1.3s ease-in-out infinite;
+  .sp-ring{
+    position:fixed; border:3px solid #ff2b2b; border-radius:4px;
+    box-shadow:0 0 22px rgba(255,43,43,0.65), inset 0 0 16px rgba(255,43,43,0.25);
+    animation:sp-ring-pulse 1.3s ease-in-out infinite;
   }
-  @keyframes hp-bounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(8px); } }
-  @keyframes hp-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.6; } }
-  @media (prefers-reduced-motion: reduce){
-    .horror-pointer .hp-arrow-svg, .horror-pointer span{ animation:none; }
+  .sp-arrow-wrap{
+    position:fixed; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center;
+    animation:hp-throb 1.3s ease-in-out infinite;
   }
+  .hp-arrow-big{ filter:drop-shadow(0 6px 18px rgba(0,0,0,0.6)) drop-shadow(0 0 26px rgba(180,10,10,0.55)); }
+  .hp-label-big{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:22px; letter-spacing:0.05em;
+    color:#ff2b2b; text-transform:uppercase; text-align:center; padding:0 16px; margin-top:4px;
+    text-shadow:0 3px 0 #5c0a0a, 0 0 26px rgba(255,43,43,0.6);
+  }
+  @keyframes hp-throb{ 0%,100%{ transform:translateX(-50%) scale(1); } 50%{ transform:translateX(-50%) scale(1.06); } }
+  @keyframes sp-ring-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.55; } }
+  @media (prefers-reduced-motion: reduce){ .sp-arrow-wrap, .sp-ring{ animation:none; } }
 
   .accuse-warning{
     padding:12px 14px; background:#2a1512; border:1px solid var(--stamp); border-radius:2px;
@@ -507,6 +540,7 @@ const ROLE_META = {
 let S = {
   view:'home',            // home | lobby | cinema | briefing | waiting_accusation | resolved
   welcomeOpen:true,       // "how to play" popup shown on first load
+  hostWarningOpen:false,  // "you're a shared screen, not a player" — shown once a host creates a room
   playerId:null,
   playerName:'',
   roomCode:null,
@@ -516,10 +550,8 @@ let S = {
   accuseMode:false,
   pendingSuspect:null,     // suspect chosen, awaiting confirm modal
   activeRoleTab:null,      // which of a multi-role player's roles is currently shown
-  seenRoleIntros:{},       // roles whose briefing popup has already been shown this round
   suspectHintDismissed:false,   // host: "press to investigate" arrow, gone after first tap
   roleSwitchHintDismissed:false, // multi-role player: "switch role" arrow, gone after first switch
-  briefingOpenFor:null,    // role whose briefing popup is currently open, or null
   lightboxUrl:null,        // case-file image currently zoomed, or null
   clockInterval:null,      // ticking interval id for the host's case clock
   poll:null,
@@ -580,7 +612,7 @@ async function hostGame(name){
     accusation:null
   };
   await saveRoom(room);
-  S.room = room; S.view='lobby';
+  S.room = room; S.view='lobby'; S.hostWarningOpen = true;
   startPolling(); render();
 }
 
@@ -627,7 +659,7 @@ async function beginInvestigation(){
   S.room.investigationStartedAt = Date.now();
   S.room.resolvedAt = null;
   await saveRoom(S.room);
-  S.introSeen=false; S.activeRoleTab=null; S.seenRoleIntros={}; S.briefingOpenFor=null;
+  S.introSeen=false; S.activeRoleTab=null;
   S.suspectHintDismissed=false; S.roleSwitchHintDismissed=false;
   render();
 }
@@ -648,7 +680,7 @@ async function playAgain(){
   S.room.investigationStartedAt=null; S.room.resolvedAt=null;
   await saveRoom(S.room);
   S.introSeen=false; S.accuseMode=false; S.pendingSuspect=null; S.activeRoleTab=null;
-  S.seenRoleIntros={}; S.briefingOpenFor=null; S.lightboxUrl=null;
+  S.lightboxUrl=null;
   S.suspectHintDismissed=false; S.roleSwitchHintDismissed=false;
   render();
 }
@@ -688,19 +720,58 @@ function heartIcon(){
 function mailIcon(){
   return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3.5 6.5l8.5 7 8.5-7"/></svg>`;
 }
-// A hand-drawn-style bouncing red arrow with a glowing label underneath —
-// deliberately loud and horror-movie-poster-ish, sitting right above the
-// thing it's pointing at. Used once per screen, and only until the player
-// actually does the thing it's telling them to do.
-function horrorPointer(label){
-  return `<div class="horror-pointer">
-    <svg class="hp-arrow-svg" width="34" height="42" viewBox="0 0 34 42" fill="none" stroke="#ff3b30" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M17 3 C6 12, 6 27, 15 36"/>
-      <path d="M7 29 L15 36 L21 26"/>
-    </svg>
-    <span>${escapeHtml(label)}</span>
-  </div>`;
+// A hand-drawn blood/paint arrow, reused inside the spotlight below.
+function bloodArrowSvg(){
+  return `<svg class="hp-arrow-big" width="90" height="122" viewBox="0 0 140 180" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bloodGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ff2b2b"/>
+        <stop offset="100%" stop-color="#7a0d0d"/>
+      </linearGradient>
+    </defs>
+    <path d="M58 6 Q78 2 84 10 L90 86 L120 90 Q126 92 122 98 L74 156 Q70 162 64 155 L18 96 Q14 90 20 88 L52 84 Z" fill="url(#bloodGrad)"/>
+    <ellipse cx="69" cy="165" rx="5" ry="11" fill="url(#bloodGrad)"/>
+    <ellipse cx="58" cy="172" rx="3" ry="6" fill="url(#bloodGrad)"/>
+    <circle cx="28" cy="26" r="4" fill="url(#bloodGrad)"/>
+    <circle cx="114" cy="38" r="5" fill="url(#bloodGrad)"/>
+    <circle cx="16" cy="68" r="3" fill="url(#bloodGrad)"/>
+    <circle cx="128" cy="76" r="3.5" fill="url(#bloodGrad)"/>
+  </svg>`;
 }
+// Placeholder emitted into the template — the actual measuring has to
+// happen after this HTML is in the DOM, so updateSpotlight() (called right
+// after every render) fills it in with four blur panels that frame the real
+// target element, leaving only that element sharp and untouched.
+function spotlightMount(targetSelector, label){
+  return `<div id="spotlight-mount" data-target="${targetSelector.replace(/"/g,'&quot;')}" data-label="${escapeHtml(label)}"></div>`;
+}
+function updateSpotlight(){
+  const mount = document.getElementById('spotlight-mount');
+  if(!mount){ return; }
+  const target = document.querySelector(mount.dataset.target);
+  if(!target){ mount.innerHTML=''; return; }
+  const r = target.getBoundingClientRect();
+  const pad = 8;
+  const top = Math.max(0, r.top - pad);
+  const left = Math.max(0, r.left - pad);
+  const right = Math.min(window.innerWidth, r.right + pad);
+  const bottom = Math.min(window.innerHeight, r.bottom + pad);
+  const w = Math.max(0, right - left);
+  const h = Math.max(0, bottom - top);
+  const arrowTop = Math.max(6, top - 128);
+  const centerX = left + w/2;
+  mount.innerHTML = `
+    <div class="sp-blur" style="top:0; left:0; right:0; height:${top}px;"></div>
+    <div class="sp-blur" style="top:${bottom}px; left:0; right:0; bottom:0;"></div>
+    <div class="sp-blur" style="top:${top}px; left:0; width:${left}px; height:${h}px;"></div>
+    <div class="sp-blur" style="top:${top}px; left:${right}px; right:0; height:${h}px;"></div>
+    <div class="sp-ring" style="top:${top}px; left:${left}px; width:${w}px; height:${h}px;"></div>
+    <div class="sp-arrow-wrap" style="top:${arrowTop}px; left:${centerX}px;">
+      ${bloodArrowSvg()}
+      <div class="hp-label-big">${escapeHtml(mount.dataset.label)}</div>
+    </div>`;
+}
+window.addEventListener('resize', ()=>{ if(document.getElementById('spotlight-mount')) updateSpotlight(); });
 
 /* ---------------------------- render: screens ---------------------------- */
 function myRoles(){
@@ -788,9 +859,8 @@ function renderHome(){
     <button class="btn btn-outline" onclick="uiJoin()">Join a Case</button>
   </div>
 
-  <p class="hint">One player hosts on a shared screen or their own phone and picks the case. Everyone else joins with the room code and gets a private role — CCTV, Access Logs, Medical, or Financial. Fewer than four detectives? The roles get split between you so nothing goes uncovered, and you can switch between your files at any time. The host runs the questioning and makes the final call.</p>
-  <button class="btn btn-outline btn-sm" style="display:block; margin:14px auto 0;" onclick="openWelcome()">How to Play</button>
-  <p class="footnote">Game data syncs through shared, unencrypted session storage — skip real personal info in your detective name.</p>
+  <button class="btn btn-outline btn-sm" style="display:block; margin:18px auto 0;" onclick="openWelcome()">How to Play</button>
+  <p class="footnote">Data syncs through shared, unencrypted storage — skip real personal info in your name.</p>
   ${renderWelcomePopup()}
   `;
 }
@@ -805,13 +875,13 @@ function renderWelcomePopup(){
   <div class="briefing-back" onclick="if(event.target===this) closeWelcome();">
     <div class="briefing-card">
       <span class="tab">How to Play</span>
-      <h2 style="padding-right:0;">Case File</h2>
-      <p class="desc">One player hosts the party on a single device — that's the Lead Investigator's screen, where the suspects and the final result show up. Everyone else joins from their own device using the room code the host is given.</p>
+      <h2>Case File</h2>
+      <p class="desc">One player hosts on a single device — the Lead Investigator's screen. Everyone else joins from their own device with the room code.</p>
       <div class="todo">
-        <p><b>Players:</b> you need at least one other device to play. One detective can cover all 4 case roles solo, or spread across up to 4 devices, one role each.</p>
+        <p><b>Players:</b> at least one other device is required. Solo, one detective covers all 4 roles; with more, up to 4 devices split them one each.</p>
       </div>
       <div class="todo">
-        <p><b>The host isn't a detective.</b> They don't get a case file of their own — they question the suspects, receive what the detectives uncover, and make the final call on who did it.</p>
+        <p><b>The host isn't a detective</b> — no case file of their own. They question suspects, hear what the detectives find, and make the final call.</p>
       </div>
       <button class="btn btn-primary" style="margin-top:18px;" onclick="closeWelcome()">Let's Play</button>
     </div>
@@ -819,6 +889,31 @@ function renderWelcomePopup(){
 }
 function openWelcome(){ S.welcomeOpen=true; render(); }
 function closeWelcome(){ S.welcomeOpen=false; render(); }
+
+// Shown once, the moment a host creates a room — loud and red on purpose,
+// so it can't be mistaken for one of the calmer informational popups. Uses
+// the same silhouette placeholder as an empty suspect photo, crossed out
+// with a red X, as a visual "you don't get one of these" signal.
+function hostWarningPopup(){
+  if(!S.hostWarningOpen) return '';
+  return `
+  <div class="warn-back" onclick="if(event.target===this) closeHostWarning();">
+    <div class="warn-card">
+      <div class="warn-photo">
+        ${silhouette('#54584b','warn')}
+        <svg viewBox="0 0 100 100">
+          <line x1="10" y1="10" x2="90" y2="90" stroke="#ff2b2b" stroke-width="10" stroke-linecap="round"/>
+          <line x1="90" y1="10" x2="10" y2="90" stroke="#ff2b2b" stroke-width="10" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="warn-title">You Are Just a Shared Screen</div>
+      <div class="warn-sub">Not a Player</div>
+      <p class="warn-body">This device is the Lead Investigator's board — suspects, the case timer, and the final result all live here for everyone to see. Grab another device if you actually want to play as a detective.</p>
+      <button class="btn btn-warn" onclick="closeHostWarning()">Understood</button>
+    </div>
+  </div>`;
+}
+function closeHostWarning(){ S.hostWarningOpen=false; render(); }
 
 function renderLobby(){
   const room=S.room, host=isHost();
@@ -871,6 +966,7 @@ function renderLobby(){
       <p>${room.caseId? 'Get ready — the briefing starts any moment.' : "They're choosing a case from the file room."}</p>
     </div>
   `}
+  ${hostWarningPopup()}
   `;
 }
 
@@ -951,37 +1047,7 @@ function renderLightbox(){
 function openLightbox(url){ S.lightboxUrl=url; render(); }
 function closeLightbox(){ S.lightboxUrl=null; render(); }
 
-// A short briefing pops up automatically the first time a player lands on a
-// given role (and again on switching to a new one they haven't seen), so
-// they know what they're holding before they open the file. Reopenable any
-// time via the "Briefing" button on their dashboard.
-function renderRoleBriefingPopup(){
-  if(!S.briefingOpenFor) return '';
-  const role = S.briefingOpenFor;
-  const meta = ROLE_META[role];
-  const isHostRole = role==='host';
-  return `
-  <div class="briefing-back" onclick="if(event.target===this) closeBriefingPopup();">
-    <div class="briefing-card">
-      <span class="tab">Role Briefing</span>
-      ${isHostRole ? '' : `<span class="stamp corner-stamp">Eyes Only</span>`}
-      <h2 style="${isHostRole?'padding-right:0;':''}">${escapeHtml(meta.label)}</h2>
-      <p class="desc">${escapeHtml(meta.desc)}</p>
-      <div class="todo">
-        ${isHostRole
-          ? `<p><b>What to do:</b> Tap a suspect's photo to hear their statement, tap Stop to cut them off. Once you've heard from everyone you need to, tap Name the Murderer — that ends the investigation for the whole team, so make sure first.</p>`
-          : `<p><b>What to do:</b> Study your case file image closely — tap it to zoom in and read every detail. Say what you find out loud to your Lead Investigator; nobody else can see this screen.</p>`
-        }
-      </div>
-      <button class="btn btn-primary" style="margin-top:18px;" onclick="closeBriefingPopup()">${isHostRole?'Start Questioning':'Open My File'}</button>
-    </div>
-  </div>`;
-}
-function openBriefingPopup(role){ S.briefingOpenFor=role; render(); }
-function closeBriefingPopup(){ S.briefingOpenFor=null; render(); }
-
 function renderHostBoard(c){
-  if(!S.seenRoleIntros.host){ S.seenRoleIntros.host=true; S.briefingOpenFor='host'; }
   const suspects = c.suspects;
   const cards = suspects.map((s,idx)=>{
     const playing = S.playingSuspect===s.id;
@@ -1005,11 +1071,7 @@ function renderHostBoard(c){
   return `
   <div class="role-banner">
     <div class="k">CASE FILE — ${escapeHtml(c.title.toUpperCase())}</div>
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-      <h2>Lead Investigator</h2>
-      <button class="btn btn-outline btn-sm" style="flex-shrink:0;" onclick="openBriefingPopup('host')">Briefing</button>
-    </div>
-    <p>${escapeHtml(ROLE_META.host.desc)}</p>
+    <h2>Lead Investigator</h2>
   </div>
 
   <div class="folder">
@@ -1019,7 +1081,7 @@ function renderHostBoard(c){
   </div>
 
   <h3 style="font-size:14px; color:var(--muted); letter-spacing:0.06em; margin:20px 0 10px;">Suspects — tap to question</h3>
-  ${(!S.accuseMode && !S.suspectHintDismissed) ? horrorPointer('Press to Investigate') : ''}
+  ${(!S.accuseMode && !S.suspectHintDismissed) ? spotlightMount('.suspect-grid', 'Press to Investigate') : ''}
   <div class="suspect-grid">${cards}</div>
 
   ${S.accuseMode ? `
@@ -1037,22 +1099,11 @@ function renderAnalystBoard(c, roleKind){
   return `
   <div class="role-banner">
     <div class="k">CASE FILE — ${escapeHtml(c.title.toUpperCase())}</div>
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-      <h2>${escapeHtml(meta.label)}</h2>
-      <button class="btn btn-outline btn-sm" style="flex-shrink:0;" onclick="openBriefingPopup('${roleKind}')">Briefing</button>
-    </div>
+    <h2>${escapeHtml(meta.label)}</h2>
     <p>${escapeHtml(meta.desc)}</p>
-  </div>
-  <div class="folder">
-    <span class="tab">Victim</span>
-    <h3 style="font-size:14px;">${escapeHtml(c.victim)}</h3>
-    <p class="muted-dark">${escapeHtml(c.location)} · found ${escapeHtml(c.discovered)}</p>
   </div>
   <h3 style="font-size:14px; color:var(--muted); letter-spacing:0.06em; margin:20px 0 10px;">Your file — <span style="color:var(--stamp)">eyes only</span></h3>
   ${caseImageHtml(img, roleKind)}
-  <div class="waiting" style="padding:24px 10px;">
-    <p>Report what you find to your Lead Investigator out loud — they can't see this file.</p>
-  </div>
   `;
 }
 
@@ -1064,19 +1115,15 @@ function renderAnalystMulti(c, roles){
     return `<div class="waiting"><div class="pulse"></div><h2>Waiting on role assignment</h2><p>The Lead Investigator needs to begin the investigation first.</p></div>`;
   }
   if(!S.activeRoleTab || !roles.includes(S.activeRoleTab)) S.activeRoleTab = roles[0];
-  if(!S.seenRoleIntros[S.activeRoleTab]){
-    S.seenRoleIntros[S.activeRoleTab] = true;
-    S.briefingOpenFor = S.activeRoleTab;
-  }
   const tabs = roles.map(r=>`
-    <button class="rtab ${r===S.activeRoleTab?'active':''}" onclick="switchRoleTab('${r}')">
+    <button class="rtab ${r===S.activeRoleTab?'active':''}" data-role="${r}" onclick="switchRoleTab('${r}')">
       <span class="dot"></span>${escapeHtml(ROLE_META[r].short)}
     </button>`).join('');
-  const note = roles.length>1
-    ? `<p class="multi-note">You're covering ${roles.length} roles this case — switch tabs to see each file. Nobody else can see them either.</p>`
+  const otherRole = roles.find(r=>r!==S.activeRoleTab);
+  const pointer = (roles.length>1 && !S.roleSwitchHintDismissed && otherRole)
+    ? spotlightMount(`.rtab[data-role='${otherRole}']`, 'Switch Role')
     : '';
-  const pointer = (roles.length>1 && !S.roleSwitchHintDismissed) ? horrorPointer('Switch Role') : '';
-  return `${pointer}<div class="role-tabs">${tabs}</div>${note}${renderAnalystBoard(c, S.activeRoleTab)}`;
+  return `${pointer}<div class="role-tabs">${tabs}</div>${renderAnalystBoard(c, S.activeRoleTab)}`;
 }
 function switchRoleTab(r){ S.roleSwitchHintDismissed=true; S.activeRoleTab=r; render(); }
 
@@ -1086,7 +1133,7 @@ function renderBriefing(){
   if(S.room.phase==='resolved') return renderResolved(c);
   const roles = myRoles();
   const body = roles.includes('host') ? renderHostBoard(c) : renderAnalystMulti(c, roles);
-  return `${roomBarHtml()}${body}${renderRoleBriefingPopup()}${renderLightbox()}`;
+  return `${roomBarHtml()}${body}${renderLightbox()}`;
 }
 
 function renderAccusationWait(c){
@@ -1127,13 +1174,13 @@ function renderResolved(c){
       <a class="btn btn-donate" href="${DONATE_LINK}" target="_blank" rel="noopener">
         <span class="btn-icon">${heartIcon()}</span>Support the Creator
       </a>
-      <p class="btn-sub">Opens a secure PayPal checkout page in a new tab.</p>
+      <p class="btn-sub">Opens PayPal in a new tab.</p>
     </div>
     <div class="btn-stack">
       <a class="btn btn-outline" href="${reviewMailtoHref(c)}">
         <span class="btn-icon">${mailIcon()}</span>Send Feedback by Email
       </a>
-      <p class="btn-sub">Opens your email app with this case pre-filled in.</p>
+      <p class="btn-sub">Opens your email app.</p>
     </div>
   </div>
   `;
@@ -1191,6 +1238,7 @@ function render(){
   }
   app.innerHTML = html;
   ensureClockTicking();
+  updateSpotlight();
 }
 
 /* ---------------------------- ui event glue ---------------------------- */
